@@ -32,7 +32,7 @@ def main():
     instagram.login(username, password)
     
     # Initialize webcam
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     
     while True:
         ret, frame = cap.read()
@@ -42,10 +42,17 @@ def main():
         # Detect gestures
         gesture = face_detector.detect_gesture(frame)
         
-        # Handle gestures
+        # Handle gestures with session checking
         if gesture == "NOD_UP":
+            if not instagram.check_session():
+                print("Session lost - attempting to reconnect...")
+                if not instagram.login(username, password):
+                    print("Failed to reconnect - exiting...")
+                    break
             instagram.next_reel()
         elif gesture == "NOD_DOWN":
+            if not instagram.check_session():
+                continue
             instagram.like_current_reel()
         elif gesture == "HEAD_TILT_RIGHT":
             instagram.save_current_reel()
