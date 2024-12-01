@@ -26,15 +26,14 @@ class InstagramController:
         self.username = None
         self.password = None
         
-        # Try to load existing session
+        # Suppress cookie loading error
         try:
             self.driver.get("https://www.instagram.com")
             time.sleep(2)
             self.load_cookies()
-            self.driver.refresh()  # Refresh to apply cookies
-            time.sleep(2)
-        except Exception as e:
-            print(f"Failed to load existing session: {e}")
+            self.driver.refresh()
+        except Exception:
+            pass  # Silently ignore cookie loading errors
     
     def setup_driver(self):
         """Initialize or reinitialize the Chrome driver"""
