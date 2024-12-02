@@ -225,6 +225,7 @@
 
         .mode-option {
             position: relative;
+            height: 100%; /* Ensure full height */
         }
 
         .mode-option input[type="radio"] {
@@ -235,8 +236,11 @@
         }
 
         .mode-option label {
-            display: block;
-            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px; /* Fixed height */
+            padding: 0 15px;
             text-align: center;
             background: var(--bg-color);
             border: 2px solid var(--button-color);
@@ -246,6 +250,8 @@
             font-weight: 600;
             transition: all 0.2s ease;
             color: var(--text-color);
+            white-space: nowrap; /* Prevent text wrapping */
+            line-height: 1.2;
         }
 
         .mode-option input[type="radio"]:checked + label {
