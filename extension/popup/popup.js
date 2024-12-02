@@ -17,50 +17,139 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Check if we're on Instagram
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    async function checkContentScriptLoaded(tabId) {
+        try {
+            const response = await chrome.tabs.sendMessage(tabId, { command: "ping" });
+            return response && response.status === "ok";
+        } catch (error) {
+            console.log("Content script not loaded:", error);
+            return false;
+        }
+    }
+
+    async function injectContentScript(tabId) {
+        try {
+            // Check if scripts are already loaded
+            const response = await chrome.tabs.sendMessage(tabId, { command: "ping" });
+            if (response && response.status === "ok") {
+                console.log("Content scripts already loaded");
+                return true;
+            }
+        } catch (error) {
+            // Error means scripts aren't loaded, which is expected
+            console.log("Content scripts not loaded, injecting...");
+        }
+
+        try {
+            await chrome.scripting.executeScript({
+                target: { tabId },
+                files: [
+                    '/lib/camera-utils.js',
+                    '/lib/face-mesh.js',
+                    '/lib/face-detection.js',
+                    '/lib/gesture-controls.js',
+                    '/content/content.js'
+                ]
+            });
+            console.log("Content scripts injected successfully");
+            return true;
+        } catch (error) {
+            console.error("Failed to inject content scripts:", error);
+            showError("Failed to load required libraries. Please refresh and try again.");
+            return false;
+        }
+    }
+
+    // Check if we're on Instagram or YouTube Shorts
+    chrome.tabs.query({active: true, currentWindow: true}, async function(tabs) {
         const url = tabs[0].url;
-        if (!url.includes('instagram.com') && !url.includes('youtube.com/shorts')) {
+        const isValidPlatform = url.includes('instagram.com') || url.includes('youtube.com/shorts');
+        
+        if (!isValidPlatform) {
             disableControls('Please open Instagram Reels or YouTube Shorts');
             return;
         }
         
-        // Check current state
-        chrome.tabs.sendMessage(tabs[0].id, {command: "getState"}, function(response) {
+        try {
+            // Check if content script is loaded
+            const isLoaded = await checkContentScriptLoaded(tabs[0].id);
+            if (!isLoaded) {
+                console.log("Content script not loaded, attempting to inject...");
+                const injected = await injectContentScript(tabs[0].id);
+                if (!injected) {
+                    throw new Error("Failed to inject content scripts");
+                }
+            }
+
+            // Check current state
+            const response = await chrome.tabs.sendMessage(tabs[0].id, {command: "getState"});
             if (response && response.isActive) {
                 updateUI(true);
             }
-        });
+        } catch (error) {
+            console.error("Initialization error:", error);
+            showError("Failed to initialize gesture controls. Please refresh the page and try again.");
+        }
     });
 
     // Handle start/stop button click
     startButton.addEventListener('click', async () => {
+        console.log('Start button clicked');
         if (!isActive) {
             try {
-                // Send start command to content script
+                startButton.disabled = true;
+                
+                // Get current tab
                 const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+                console.log('Current tab:', tab.id);
+                
+                // Ensure content scripts are loaded
+                const scriptsLoaded = await injectContentScript(tab.id);
+                console.log('Scripts loaded:', scriptsLoaded);
+                
+                if (!scriptsLoaded) {
+                    throw new Error('Failed to load required scripts');
+                }
+
+                // Send start command
+                console.log('Sending startDetection command...');
                 const response = await chrome.tabs.sendMessage(tab.id, {
                     command: "startDetection"
                 });
                 
+                console.log('Received response:', response);
+                
                 if (response && response.success) {
                     updateUI(true);
                 } else {
-                    throw new Error(response.error || 'Failed to start detection');
+                    throw new Error(response?.error || 'Failed to start detection');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error starting detection:', error);
                 showError(error.message);
                 updateUI(false);
+            } finally {
+                startButton.disabled = false;
             }
         } else {
-            // Send stop command to content script
-            const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
             try {
-                await chrome.tabs.sendMessage(tab.id, {command: "stopDetection"});
-                updateUI(false);
+                const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+                console.log('Sending stopDetection command...');
+                
+                const response = await chrome.tabs.sendMessage(tab.id, {
+                    command: "stopDetection"
+                });
+                
+                console.log('Stop response:', response);
+                
+                if (response && response.success) {
+                    updateUI(false);
+                } else {
+                    throw new Error('Failed to stop detection');
+                }
             } catch (error) {
                 console.error('Error stopping detection:', error);
+                showError('Failed to stop gesture controls. Please refresh the page.');
             }
         }
     });
@@ -79,7 +168,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function showError(message) {
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
+        errorMessage.style.color = 'var(--error-color)';
         startButton.disabled = false;
+        webcamStatus.textContent = 'Webcam: Error';
+        webcamStatus.style.color = 'var(--error-color)';
+        detectionStatus.textContent = 'Detection: Error';
+        detectionStatus.style.color = 'var(--error-color)';
     }
 
     function disableControls(message) {

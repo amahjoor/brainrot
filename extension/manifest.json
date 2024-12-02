@@ -1,13 +1,13 @@
 {
     "manifest_version": 3,
-    "name": "BrainRot - Gesture Control for Social Media",
+    "name": "Gesture Control for Reels",
     "version": "1.0",
-    "description": "Control Instagram Reels & YouTube Shorts with facial gestures",
+    "description": "Control Instagram Reels and YouTube Shorts with face gestures",
     "permissions": [
         "activeTab",
+        "scripting",
         "storage",
-        "tabs",
-        "scripting"
+        "tabs"
     ],
     "host_permissions": [
         "*://*.instagram.com/*",
@@ -20,21 +20,23 @@
         {
             "matches": [
                 "*://*.instagram.com/*",
-                "*://*.youtube.com/shorts/*"
+                "*://*.youtube.com/shorts*"
             ],
             "js": [
-                "lib/mediapipe-face-mesh.js",
-                "lib/mediapipe-camera-utils.js",
+                "lib/camera-utils.js",
+                "lib/face-mesh.js",
                 "lib/face-detection.js",
                 "lib/gesture-controls.js",
                 "content/content.js"
             ],
-            "run_at": "document_end"
+            "run_at": "document_start"
         }
     ],
     "web_accessible_resources": [
         {
-            "resources": ["lib/*"],
+            "resources": [
+                "lib/*"
+            ],
             "matches": [
                 "*://*.instagram.com/*",
                 "*://*.youtube.com/*"

@@ -1,129 +1,106 @@
-class FaceDetector {
-    constructor() {
-        this.faceMesh = null;
-        this.camera = null;
-        this.onGestureCallback = null;
-        this.isActive = false;
-        this.lastBlinkTime = 0;
-        this.blinkCooldown = 500; // 500ms cooldown for blinks
-    }
+if (typeof FaceDetector === 'undefined') {
+    class FaceDetector {
+        constructor() {
+            console.log('FaceDetector constructor called');
+            this.isInitialized = false;
+            this.onGesture = null;
+            this.lastBlink = 0;
+            this.blinkDuration = 0;
+            this.BLINK_THRESHOLD = 200; // ms to differentiate short/long blinks
+        }
 
-    async initialize() {
-        // Load MediaPipe FaceMesh
-        this.faceMesh = new FaceMesh({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+        async initialize() {
+            console.log('Initializing FaceDetector...');
+            try {
+                this.faceMesh = new FaceMesh({
+                    locateFile: (file) => {
+                        return chrome.runtime.getURL(`lib/${file}`);
+                    }
+                });
+
+                // Configure face mesh
+                await this.faceMesh.setOptions({
+                    maxNumFaces: 1,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                // Set up face mesh callback
+                this.faceMesh.onResults((results) => {
+                    this.processResults(results);
+                });
+
+                this.isInitialized = true;
+                console.log('FaceDetector initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('FaceDetector initialization error:', error);
+                throw error;
             }
-        });
+        }
 
-        // Configure FaceMesh
-        this.faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
+        async start(videoStream) {
+            console.log('Starting face detection...');
+            if (!this.isInitialized) {
+                await this.initialize();
+            }
 
-        // Set up result handling
-        this.faceMesh.onResults((results) => this.processResults(results));
-    }
+            try {
+                // Create video element for processing
+                this.video = document.createElement('video');
+                this.video.srcObject = videoStream;
+                this.video.autoplay = true;
+                
+                // Start processing frames
+                const camera = new Camera(this.video, {
+                    onFrame: async () => {
+                        await this.faceMesh.send({image: this.video});
+                    },
+                    width: 640,
+                    height: 480
+                });
+                await camera.start();
+                
+                console.log('Face detection started');
+            } catch (error) {
+                console.error('Failed to start face detection:', error);
+                throw error;
+            }
+        }
 
-    async start(videoStream) {
-        if (this.isActive) return;
+        processResults(results) {
+            if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+                return;
+            }
 
-        // Initialize camera with the provided stream
-        this.camera = new Camera(videoStream, {
-            onFrame: async () => {
-                if (this.isActive) {
-                    await this.faceMesh.send({image: this.camera.video});
+            const landmarks = results.multiFaceLandmarks[0];
+            const eyesClosed = this.areEyesClosed(landmarks);
+            
+            const now = Date.now();
+            
+            if (eyesClosed && this.lastBlink === 0) {
+                // Eyes just closed
+                this.lastBlink = now;
+            } else if (!eyesClosed && this.lastBlink > 0) {
+                // Eyes just opened
+                this.blinkDuration = now - this.lastBlink;
+                
+                // Determine blink type
+                if (this.blinkDuration < this.BLINK_THRESHOLD) {
+                    this.onGesture?.('SHORT_BLINK');
+                } else {
+                    this.onGesture?.('LONG_BLINK');
                 }
-            },
-            width: 640,
-            height: 480
-        });
-
-        this.isActive = true;
-        await this.camera.start();
-    }
-
-    stop() {
-        this.isActive = false;
-        if (this.camera) {
-            this.camera.stop();
-            this.camera = null;
-        }
-    }
-
-    onGesture(callback) {
-        this.onGestureCallback = callback;
-    }
-
-    processResults(results) {
-        if (!results.multiFaceLandmarks || !results.multiFaceLandmarks[0]) return;
-
-        const landmarks = results.multiFaceLandmarks[0];
-        
-        // Check for blink
-        const leftEye = this.getEyeAspectRatio(landmarks, 'left');
-        const rightEye = this.getEyeAspectRatio(landmarks, 'right');
-        const avgEAR = (leftEye + rightEye) / 2;
-
-        // Check head tilt
-        const headTilt = this.getHeadTilt(landmarks);
-
-        // Detect gestures
-        this.detectGestures(avgEAR, headTilt);
-    }
-
-    getEyeAspectRatio(landmarks, eye) {
-        // Eye landmark indices for MediaPipe FaceMesh
-        const eyeIndices = eye === 'left' ? 
-            [[33, 160], [158, 133], [153, 144]] : // Left eye
-            [[362, 385], [387, 373], [380, 374]]; // Right eye
-
-        const points = eyeIndices.map(([p1, p2]) => ({
-            distance: this.euclideanDistance(
-                landmarks[p1],
-                landmarks[p2]
-            )
-        }));
-
-        // Calculate EAR
-        return (points[0].distance + points[1].distance) / (2 * points[2].distance);
-    }
-
-    getHeadTilt(landmarks) {
-        // Use eye landmarks to determine head tilt
-        const leftEye = landmarks[33];
-        const rightEye = landmarks[362];
-        
-        return Math.atan2(
-            rightEye.y - leftEye.y,
-            rightEye.x - leftEye.x
-        ) * (180 / Math.PI);
-    }
-
-    detectGestures(eyeAspectRatio, headTilt) {
-        const now = Date.now();
-
-        // Blink detection
-        if (eyeAspectRatio < 0.2 && (now - this.lastBlinkTime) > this.blinkCooldown) {
-            this.lastBlinkTime = now;
-            this.onGestureCallback?.('BLINK');
+            }
         }
 
-        // Head tilt detection
-        if (headTilt > 15) {
-            this.onGestureCallback?.('HEAD_TILT_RIGHT');
-        } else if (headTilt < -15) {
-            this.onGestureCallback?.('HEAD_TILT_LEFT');
+        areEyesClosed(landmarks) {
+            // Implement eye closure detection logic here
+            // For example, you can check the distance between eye landmarks
+            // and determine if the eyes are closed based on a threshold
+            return false;
         }
     }
-
-    euclideanDistance(point1, point2) {
-        return Math.sqrt(
-            Math.pow(point2.x - point1.x, 2) +
-            Math.pow(point2.y - point1.y, 2)
-        );
-    }
+    window.FaceDetector = FaceDetector;
 }
