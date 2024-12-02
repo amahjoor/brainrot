@@ -2,6 +2,7 @@
     if (!window.BrainRotController) {
         class SocialMediaController {
             constructor() {
+                console.log('SocialMediaController constructor called');
                 this.isActive = false;
                 this.isLiked = false;
                 this.detector = null;
@@ -75,19 +76,31 @@
 
             setupMessageListener() {
                 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-                    console.log('Received message:', request);
+                    console.log('Content script received message:', request);
                     
                     switch(request.command) {
+                        case "ping":
+                            sendResponse({ status: 'ok' });
+                            break;
+                            
                         case "startDetection":
+                            console.log('Starting detection...');
                             this.startGestureRecognition()
-                                .then(response => sendResponse(response))
-                                .catch(error => sendResponse({
-                                    success: false,
-                                    error: error.message
-                                }));
+                                .then(response => {
+                                    console.log('Detection started:', response);
+                                    sendResponse(response);
+                                })
+                                .catch(error => {
+                                    console.error('Failed to start detection:', error);
+                                    sendResponse({
+                                        success: false,
+                                        error: error.message
+                                    });
+                                });
                             return true; // Keep message channel open
                             
                         case "stopDetection":
+                            console.log('Stopping detection...');
                             this.stopGestureRecognition();
                             sendResponse({success: true});
                             break;
@@ -152,55 +165,64 @@
 
             async startGestureRecognition() {
                 console.log('startGestureRecognition called');
-                
                 if (this.isActive) {
                     console.log('Already active, returning');
                     return { success: true };
                 }
                 
                 try {
-                    // Check if browser supports getUserMedia
-                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                        throw new Error('Your browser does not support camera access');
-                    }
-
-                    // Check camera permission
-                    console.log('Checking camera permission...');
+                    // Check camera permission status
                     const permissionResult = await navigator.permissions.query({ name: 'camera' });
                     console.log('Camera permission status:', permissionResult.state);
 
-                    // Request camera with specific constraints
+                    // Request camera access
                     console.log('Requesting camera access...');
-                    this.videoStream = await navigator.mediaDevices.getUserMedia({
-                        video: {
+                    this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
                             width: { ideal: 640 },
                             height: { ideal: 480 },
                             facingMode: "user",
                             frameRate: { ideal: 30 }
-                        }
+                        } 
                     });
+                    console.log('Camera access granted');
 
-                    console.log('Camera access granted, creating preview...');
-                    this.createCameraPreview();
-
-                    if (this.videoPreview) {
-                        console.log('Setting video stream to preview...');
-                        this.videoPreview.srcObject = this.videoStream;
-                        await new Promise((resolve) => {
-                            this.videoPreview.onloadedmetadata = () => {
-                                this.videoPreview.play().then(resolve);
-                            };
-                        });
-                        console.log('Video preview started playing');
+                    // Show preview if debug is enabled
+                    if (this.showDebug) {
+                        console.log('Creating camera preview...');
+                        this.createCameraPreview();
+                        if (this.videoPreview) {
+                            this.videoPreview.srcObject = this.videoStream;
+                            console.log('Preview created and stream attached');
+                        }
                     }
 
-                    // Initialize and start detector
-                    console.log('Initializing detector...');
+                    // Initialize detector
                     if (!this.detector) {
+                        console.log('Initializing detector...');
                         this.detector = new FaceDetector();
+                        
+                        // Set up gesture handler
+                        this.detector.onGesture = (gesture) => {
+                            console.log('Gesture detected:', gesture);
+                            switch(gesture) {
+                                case 'BLINK_SHORT':
+                                    // Scroll down for short blink
+                                    window.scrollBy(0, 100);
+                                    break;
+                                case 'BLINK_LONG':
+                                    // Scroll up for long blink
+                                    window.scrollBy(0, -100);
+                                    break;
+                            }
+                        };
+                        
                         await this.detector.initialize();
+                        console.log('Detector initialized');
                     }
 
+                    // Start detection
+                    console.log('Starting detector...');
                     await this.detector.start(this.videoStream);
                     this.isActive = true;
                     
@@ -209,20 +231,8 @@
                     
                 } catch (error) {
                     console.error('Error in startGestureRecognition:', error);
-                    this.stopGestureRecognition(); // Cleanup
-
-                    let errorMessage = '';
-                    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                        errorMessage = 'Camera access denied. Please allow camera access and try again.';
-                    } else if (error.name === 'NotFoundError') {
-                        errorMessage = 'No camera found. Please connect a camera and try again.';
-                    } else if (error.name === 'NotReadableError') {
-                        errorMessage = 'Camera is in use by another application. Please close other apps using the camera.';
-                    } else {
-                        errorMessage = `Failed to start: ${error.message || 'Unknown error'}`;
-                    }
-                    
-                    throw new Error(errorMessage);
+                    this.stopGestureRecognition(); // Cleanup on error
+                    throw error;
                 }
             }
 

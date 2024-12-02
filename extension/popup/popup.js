@@ -29,33 +29,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function injectContentScript(tabId) {
         try {
-            // Check if scripts are already loaded
-            const response = await chrome.tabs.sendMessage(tabId, { command: "ping" });
-            if (response && response.status === "ok") {
-                console.log("Content scripts already loaded");
-                return true;
+            // First check if scripts are already loaded
+            try {
+                const response = await chrome.tabs.sendMessage(tabId, { command: "ping" });
+                if (response && response.status === "ok") {
+                    console.log("Content scripts already loaded");
+                    return true;
+                }
+            } catch (e) {
+                console.log("Content scripts not loaded, will inject now:", e);
             }
-        } catch (error) {
-            // Error means scripts aren't loaded, which is expected
-            console.log("Content scripts not loaded, injecting...");
-        }
 
-        try {
-            await chrome.scripting.executeScript({
-                target: { tabId },
-                files: [
-                    '/lib/camera-utils.js',
-                    '/lib/face-mesh.js',
-                    '/lib/face-detection.js',
-                    '/lib/gesture-controls.js',
-                    '/content/content.js'
-                ]
-            });
-            console.log("Content scripts injected successfully");
+            // Inject scripts in correct order with proper error handling
+            const scripts = [
+                'lib/mediapipe/custom-assets-loader.js',
+                'lib/mediapipe/face_mesh_solution_packed_assets_loader.js',
+                'lib/mediapipe/face_mesh_solution_simd_wasm_bin.js',
+                'lib/mediapipe/face_mesh_solution_wasm_bin.js',
+                'lib/face-detection.js',
+                'lib/gesture-controls.js',
+                'content/content.js'
+            ];
+
+            console.log('Starting script injection...');
+            
+            for (const script of scripts) {
+                try {
+                    console.log(`Attempting to inject: ${script}`);
+                    await chrome.scripting.executeScript({
+                        target: { tabId },
+                        files: [script]
+                    });
+                    console.log(`Successfully injected: ${script}`);
+                } catch (error) {
+                    console.error(`Failed to inject ${script}:`, error);
+                    throw new Error(`Failed to inject ${script}: ${error.message}`);
+                }
+            }
+
+            console.log("All content scripts injected successfully");
+
+            // Verify injection was successful
+            try {
+                const verifyResponse = await chrome.tabs.sendMessage(tabId, { command: "ping" });
+                if (verifyResponse && verifyResponse.status === "ok") {
+                    console.log("Content script injection verified");
+                    return true;
+                }
+            } catch (e) {
+                console.error("Failed to verify content script injection:", e);
+                throw new Error("Content script verification failed");
+            }
+
             return true;
         } catch (error) {
             console.error("Failed to inject content scripts:", error);
-            showError("Failed to load required libraries. Please refresh and try again.");
+            showError(`Failed to load required scripts: ${error.message}`);
             return false;
         }
     }
@@ -98,20 +127,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isActive) {
             try {
                 startButton.disabled = true;
+                errorMessage.style.display = 'none';
                 
-                // Get current tab
                 const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
                 console.log('Current tab:', tab.id);
                 
-                // Ensure content scripts are loaded
-                const scriptsLoaded = await injectContentScript(tab.id);
-                console.log('Scripts loaded:', scriptsLoaded);
-                
-                if (!scriptsLoaded) {
-                    throw new Error('Failed to load required scripts');
-                }
-
-                // Send start command
                 console.log('Sending startDetection command...');
                 const response = await chrome.tabs.sendMessage(tab.id, {
                     command: "startDetection"
@@ -121,6 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (response && response.success) {
                     updateUI(true);
+                    isActive = true;
                 } else {
                     throw new Error(response?.error || 'Failed to start detection');
                 }

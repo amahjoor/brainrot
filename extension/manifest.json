@@ -11,7 +11,8 @@
     ],
     "host_permissions": [
         "*://*.instagram.com/*",
-        "*://*.youtube.com/*"
+        "*://*.youtube.com/*",
+        "https://cdn.jsdelivr.net/"
     ],
     "action": {
         "default_popup": "popup/popup.html"
@@ -19,12 +20,11 @@
     "content_scripts": [
         {
             "matches": [
-                "*://*.instagram.com/*",
-                "*://*.youtube.com/shorts*"
+                "*://*.instagram.com/reels/*",
+                "*://*.youtube.com/shorts/*"
             ],
             "js": [
-                "lib/camera-utils.js",
-                "lib/face-mesh.js",
+                "lib/mediapipe/face-mesh-bundle.js",
                 "lib/face-detection.js",
                 "lib/gesture-controls.js",
                 "content/content.js"
@@ -35,11 +35,12 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "lib/*"
+                "lib/mediapipe/*"
             ],
             "matches": [
-                "*://*.instagram.com/*",
-                "*://*.youtube.com/*"
+                "https://*.instagram.com/*",
+                "https://*.youtube.com/*",
+                "https://*/*"
             ]
         }
     ]
