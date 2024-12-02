@@ -22,13 +22,25 @@
                             sendResponse({ success: true });
                             break;
                             
+                        case 'setSpeed':
+                            this.scrollController.setSpeed(message.speed);
+                            sendResponse({ success: true });
+                            break;
+                            
+                        case 'getSpeed':
+                            sendResponse({ 
+                                speed: this.scrollController.getCurrentSpeed() 
+                            });
+                            break;
+                            
                         case 'ping':
                             sendResponse({ success: true });
                             break;
                             
                         case 'getState':
                             sendResponse({
-                                isScrolling: this.scrollController.isScrolling
+                                isScrolling: this.scrollController.isScrolling,
+                                speed: this.scrollController.getCurrentSpeed()
                             });
                             break;
                     }

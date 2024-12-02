@@ -162,6 +162,32 @@
             height: 16px;
             margin-right: 4px;
         }
+
+        .speed-control {
+            margin-top: 15px;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        .speed-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .speed-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .current-speed {
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -191,6 +217,17 @@
             <p><span>👁</span> Short Blink = Next Video</p>
             <p><span>👁</span> Long Blink = Previous Video</p>
             <p><span>👍</span> Thumbs Up = Like/Unlike</p>
+        </div>
+
+        <div class="speed-control">
+            <label>Scroll Speed:</label>
+            <input type="range" id="speedSlider" class="speed-slider" 
+                   min="200" max="5000" step="100" value="1000">
+            <div class="speed-labels">
+                <span>Fast (0.2s)</span>
+                <span>Slow (5s)</span>
+            </div>
+            <div id="currentSpeed" class="current-speed">Current: 1.0 seconds</div>
         </div>
     </div>
     <script src="popup.js"></script>

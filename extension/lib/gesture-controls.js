@@ -2,13 +2,27 @@ class ScrollController {
     constructor() {
         this.isScrolling = false;
         this.scrollInterval = null;
-        this.scrollDelay = 1000; // 1 second between scrolls
+        this.scrollDelay = 1000; // Default: 1 second
+        this.minDelay = 200;    // Minimum: 0.2 seconds
+        this.maxDelay = 5000;   // Maximum: 5 seconds
+    }
+
+    setSpeed(delayInMs) {
+        // Validate and set new delay
+        this.scrollDelay = Math.min(Math.max(delayInMs, this.minDelay), this.maxDelay);
+        console.log('Scroll speed set to:', this.scrollDelay, 'ms');
+
+        // Restart scrolling if already active
+        if (this.isScrolling) {
+            this.stopScrolling();
+            this.startScrolling();
+        }
     }
 
     startScrolling() {
         if (this.isScrolling) return;
         
-        console.log('Starting auto-scroll');
+        console.log('Starting auto-scroll with delay:', this.scrollDelay);
         this.isScrolling = true;
         
         this.scrollInterval = setInterval(() => {
@@ -17,27 +31,20 @@ class ScrollController {
             const reelItems = document.querySelectorAll('ytd-reel-video-renderer');
             
             if (shortsContainer && reelItems.length > 0) {
-                // Get the height of a single Short
                 const shortHeight = reelItems[0].offsetHeight;
-                
-                // Scroll the container
                 shortsContainer.scrollBy({
                     top: shortHeight,
                     behavior: 'instant'
                 });
-                
                 console.log('Scrolled Shorts container by:', shortHeight);
             } else {
-                // Fallback: try to find the active Short and scroll to the next one
                 const activeShort = document.querySelector('ytd-reel-video-renderer[is-active]');
                 if (activeShort && activeShort.nextElementSibling) {
                     activeShort.nextElementSibling.scrollIntoView({
                         behavior: 'instant',
                         block: 'center'
                     });
-                    console.log('Scrolled to next Short using scrollIntoView');
-                } else {
-                    console.log('No Shorts container or active Short found');
+                    console.log('Scrolled to next Short');
                 }
             }
         }, this.scrollDelay);
@@ -62,6 +69,10 @@ class ScrollController {
             this.startScrolling();
         }
         return this.isScrolling;
+    }
+
+    getCurrentSpeed() {
+        return this.scrollDelay;
     }
 }
 
