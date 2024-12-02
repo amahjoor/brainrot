@@ -1,0 +1,35 @@
+{
+    "manifest_version": 3,
+    "name": "BrainRot - Gesture Control for Instagram",
+    "version": "1.0",
+    "description": "Control Instagram Reels with facial gestures",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://www.instagram.com/*"
+    ],
+    "action": {
+        "default_popup": "popup/popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://www.instagram.com/*"],
+            "js": [
+                "lib/mediapipe-face-mesh.js",
+                "lib/mediapipe-camera-utils.js",
+                "lib/face-detection.js",
+                "lib/gesture-controls.js",
+                "content/content.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["lib/*"],
+            "matches": ["https://www.instagram.com/*"]
+        }
+    ]
+}

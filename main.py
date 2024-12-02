@@ -21,7 +21,7 @@ def dist(p1, p2):
     return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
 # Initialize video capture
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 blink_threshold = 0.25  # Adjusted for easier blink detection
 ear_counter = 0

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <title>ReelEz Controls</title>
+    <meta charset="UTF-8">
+    <style>
+        :root[data-theme="light"] {
+            --bg-color: #fafafa;
+            --text-color: #333;
+            --button-color: #0095f6;
+            --button-hover: #0081d6;
+            --status-bg: #f0f0f0;
+            --status-text: #666;
+            --border-color: #eee;
+            --active-color: #4CAF50;
+            --error-bg: #ffe6e6;
+            --error-color: #dc3545;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #fff;
+            --button-color: #1a8cd8;
+            --button-hover: #1577b8;
+            --status-bg: #2d2d2d;
+            --status-text: #aaa;
+            --border-color: #333;
+            --active-color: #45a049;
+            --error-bg: #442726;
+            --error-color: #ff4444;
+        }
+
+        body {
+            width: 320px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--status-bg);
+        }
+
+        button {
+            background: var(--button-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        button.active {
+            background: var(--error-color);
+        }
+
+        button:disabled {
+            background: var(--status-text);
+            cursor: not-allowed;
+        }
+
+        .status {
+            display: flex;
+            justify-content: space-between;
+            background: var(--status-bg);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .status span {
+            font-size: 14px;
+            color: var(--status-text);
+            transition: color 0.3s ease;
+        }
+
+        .gestures {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: 8px;
+        }
+
+        .gestures p {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .gestures p span {
+            font-size: 20px;
+            min-width: 24px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .error {
+            color: var(--error-color);
+            font-size: 14px;
+            text-align: center;
+            padding: 8px;
+            background: var(--error-bg);
+            border-radius: 6px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0">BrainRot Controls</h2>
+            <button class="theme-toggle" id="themeToggle">🌓</button>
+        </div>
+        <button id="startGestures">Start Gesture Control</button>
+        <div class="status">
+            <span id="webcamStatus">Webcam: Off</span>
+            <span id="detectionStatus">Detection: Off</span>
+        </div>
+        <div class="error" id="errorMessage"></div>
+        <div class="gestures">
+            <p><span>👁</span> Short Blink = Scroll Down</p>
+            <p><span>👁</span> Long Blink = Scroll Up</p>
+            <p><span>👍</span> Thumbs Up = Like/Unlike</p>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
