@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html data-theme="light">
 <head>
-    <title>ReelEz Controls</title>
+    <title>Brain Rot Controls</title>
     <meta charset="UTF-8">
     <style>
         :root[data-theme="light"] {
@@ -188,6 +188,113 @@
             color: #333;
             margin-top: 5px;
         }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .control-label input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        #controlModes {
+            margin-bottom: 15px;
+        }
+
+        .speed-control {
+            margin-top: 10px;
+            display: none; /* Hidden by default, shown when auto-scroll selected */
+        }
+
+        .speed-control.visible {
+            display: block;
+        }
+
+        .mode-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .mode-option {
+            position: relative;
+        }
+
+        .mode-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mode-option label {
+            display: block;
+            padding: 12px 15px;
+            text-align: center;
+            background: var(--bg-color);
+            border: 2px solid var(--button-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+        }
+
+        .mode-option input[type="radio"]:checked + label {
+            background: var(--button-color);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-option label:hover {
+            background: var(--button-hover);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .mode-option input[type="radio"]:checked + label:hover {
+            transform: none;
+        }
+
+        .speed-control {
+            background: var(--status-bg);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .speed-control.visible {
+            display: block;
+        }
+
+        .speed-slider {
+            width: 100%;
+            margin: 10px 0;
+            accent-color: var(--button-color);
+        }
+
+        .speed-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--status-text);
+        }
+
+        .current-speed {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-color);
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -207,17 +314,25 @@
             </button>
         </div>
 
-        <button id="startGestures">Start Gesture Control</button>
+        <div class="mode-selector">
+            <div class="mode-option">
+                <input type="radio" id="videoMode" name="mode" value="video" checked>
+                <label for="videoMode">Video Detection Mode</label>
+            </div>
+            <div class="mode-option">
+                <input type="radio" id="autoMode" name="mode" value="auto">
+                <label for="autoMode">Auto-Scroll Mode</label>
+            </div>
+        </div>
+
+        <button id="startGestures">Start ReelEz</button>
+        
         <div class="status">
             <span id="webcamStatus">Webcam: Off</span>
             <span id="detectionStatus">Detection: Off</span>
         </div>
+
         <div class="error" id="errorMessage"></div>
-        <div class="gestures">
-            <p><span>👁</span> Short Blink = Next Video</p>
-            <p><span>👁</span> Long Blink = Previous Video</p>
-            <p><span>👍</span> Thumbs Up = Like/Unlike</p>
-        </div>
 
         <div class="speed-control">
             <label>Scroll Speed:</label>
@@ -228,6 +343,12 @@
                 <span>Slow (5s)</span>
             </div>
             <div id="currentSpeed" class="current-speed">Current: 1.0 seconds</div>
+        </div>
+
+        <div class="gestures">
+            <p><span>👁</span> Short Blink = Next Video</p>
+            <p><span>👁</span> Long Blink = Previous Video</p>
+            <p><span>👍</span> Thumbs Up = Like/Unlike</p>
         </div>
     </div>
     <script src="popup.js"></script>
