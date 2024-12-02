@@ -135,14 +135,52 @@
             border-radius: 6px;
             display: none;
         }
+
+        .quick-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-nav button {
+            flex: 1;
+            padding: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .quick-nav button img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .platform-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h2 style="margin: 0">BrainRot Controls</h2>
+            <small style="color: var(--status-text)">For Instagram & YouTube</small>
             <button class="theme-toggle" id="themeToggle">🌓</button>
         </div>
+
+        <div class="quick-nav">
+            <button id="goToReels">
+                <span>📱</span> Instagram Reels
+            </button>
+            <button id="goToShorts">
+                <span>▶️</span> YouTube Shorts
+            </button>
+        </div>
+
         <button id="startGestures">Start Gesture Control</button>
         <div class="status">
             <span id="webcamStatus">Webcam: Off</span>
@@ -150,8 +188,8 @@
         </div>
         <div class="error" id="errorMessage"></div>
         <div class="gestures">
-            <p><span>👁</span> Short Blink = Scroll Down</p>
-            <p><span>👁</span> Long Blink = Scroll Up</p>
+            <p><span>👁</span> Short Blink = Next Video</p>
+            <p><span>👁</span> Long Blink = Previous Video</p>
             <p><span>👍</span> Thumbs Up = Like/Unlike</p>
         </div>
     </div>
