@@ -9,20 +9,14 @@ if (typeof FaceDetector === 'undefined') {
             this.lastBlink = 0;
             this.blinkDuration = 0;
             this.BLINK_THRESHOLD = 200;  // ms
-            this.EAR_THRESHOLD = 0.2;    // Eye Aspect Ratio threshold
+            this.EAR_THRESHOLD = 0.25;   // Typical threshold for blink detection
             this.lastEyeState = 'open';
             this.consecutiveFrames = 0;
-            this.CONSECUTIVE_FRAMES = 3;  // Number of frames to confirm blink
+            this.CONSECUTIVE_FRAMES = 2;  // Number of frames to confirm blink
 
             // MediaPipe face mesh landmarks for eyes
-            this.LEFT_EYE_INDICES = {
-                upper: [386, 374, 373, 390, 388, 387, 386],
-                lower: [373, 374, 380, 379, 378, 377, 376, 375, 374]
-            };
-            this.RIGHT_EYE_INDICES = {
-                upper: [159, 145, 144, 163, 161, 160, 159],
-                lower: [145, 144, 153, 152, 151, 150, 149, 148, 147]
-            };
+            this.LEFT_EYE_INDICES = [33, 133, 159, 145, 144, 163];  // Simplified indices
+            this.RIGHT_EYE_INDICES = [362, 263, 386, 374, 373, 390];  // Simplified indices
         }
 
         async initialize() {
@@ -56,21 +50,24 @@ if (typeof FaceDetector === 'undefined') {
 
         processLandmarks(landmarks) {
             // Calculate EAR for both eyes
-            const leftEAR = this.getEyeAspectRatio(landmarks, 'left');
-            const rightEAR = this.getEyeAspectRatio(landmarks, 'right');
+            const leftEAR = this.getEyeAspectRatio(landmarks, this.LEFT_EYE_INDICES);
+            const rightEAR = this.getEyeAspectRatio(landmarks, this.RIGHT_EYE_INDICES);
             const avgEAR = (leftEAR + rightEAR) / 2;
+
+            console.log('Current EAR:', avgEAR);
 
             const now = Date.now();
             
             // Detect blink
             if (avgEAR < this.EAR_THRESHOLD) {
                 this.consecutiveFrames++;
+                console.log('Eyes closing, consecutive frames:', this.consecutiveFrames);
                 
                 if (this.consecutiveFrames >= this.CONSECUTIVE_FRAMES && this.lastEyeState === 'open') {
                     // Blink started
                     this.lastBlink = now;
                     this.lastEyeState = 'closed';
-                    console.log('Eyes closed, EAR:', avgEAR);
+                    console.log('Blink started, EAR:', avgEAR);
                 }
             } else {
                 if (this.lastEyeState === 'closed' && this.consecutiveFrames >= this.CONSECUTIVE_FRAMES) {
@@ -91,38 +88,26 @@ if (typeof FaceDetector === 'undefined') {
             }
         }
 
-        getEyeAspectRatio(landmarks, eye) {
-            const indices = eye === 'left' ? this.LEFT_EYE_INDICES : this.RIGHT_EYE_INDICES;
-            
-            // Calculate vertical distances (height)
-            let upperSum = 0;
-            let lowerSum = 0;
-            
-            // Sum up distances between upper eye points
-            for (let i = 1; i < indices.upper.length; i++) {
-                upperSum += this.getDistance(
-                    landmarks[indices.upper[i-1]],
-                    landmarks[indices.upper[i]]
-                );
-            }
-            
-            // Sum up distances between lower eye points
-            for (let i = 1; i < indices.lower.length; i++) {
-                lowerSum += this.getDistance(
-                    landmarks[indices.lower[i-1]],
-                    landmarks[indices.lower[i]]
-                );
-            }
-
-            // Calculate horizontal distance (width)
-            const horizontal = this.getDistance(
-                landmarks[indices.upper[0]],
-                landmarks[indices.upper[3]]
+        getEyeAspectRatio(landmarks, indices) {
+            // Get vertical distances
+            const height1 = this.getDistance(
+                landmarks[indices[1]],  // top
+                landmarks[indices[5]]   // bottom
             );
-
-            // Calculate EAR: (upper + lower) / (2 * horizontal)
-            if (horizontal === 0) return 1.0;
-            return (upperSum + lowerSum) / (2.0 * horizontal);
+            const height2 = this.getDistance(
+                landmarks[indices[2]],  // top
+                landmarks[indices[4]]   // bottom
+            );
+            
+            // Get horizontal distance
+            const width = this.getDistance(
+                landmarks[indices[0]],  // outer
+                landmarks[indices[3]]   // inner
+            );
+            
+            // Calculate EAR
+            if (width === 0) return 0;
+            return ((height1 + height2) / (2.0 * width));
         }
 
         getDistance(p1, p2) {

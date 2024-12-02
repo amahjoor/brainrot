@@ -24,39 +24,44 @@ class FaceMesh {
         if (!this.isRunning || !this.onResultsCallback) return;
         
         this.frameCount++;
+        console.log('Processing frame:', this.frameCount);
         
-        // Create simulated landmarks for testing
+        // Create simulated landmarks
         const landmarks = new Array(468).fill().map(() => ({
             x: 0.5,
             y: 0.5,
             z: 0
         }));
         
-        // Simulate eye landmarks
-        // Left eye
-        landmarks[33] = { x: 0.3, y: 0.4, z: 0 };
-        landmarks[133] = { x: 0.35, y: 0.4, z: 0 };
-        landmarks[159] = { x: 0.3, y: 0.4, z: 0 };
-        landmarks[145] = { x: 0.35, y: 0.4, z: 0 };
-        landmarks[144] = { x: 0.4, y: 0.4, z: 0 };
-        landmarks[163] = { x: 0.45, y: 0.4, z: 0 };
-        landmarks[7] = { x: 0.3, y: 0.45, z: 0 };
+        // Set up eye landmarks with realistic proportions
+        const normalEyeHeight = 0.01;  // Normal eye opening (1% of face height)
+        const blinkEyeHeight = 0.001;  // Almost closed during blink
+        const eyeWidth = 0.03;        // Eye width (3% of face width)
+        
+        // Determine if blinking
+        const isBlinking = this.frameCount % 30 < 3;
+        const eyeHeight = isBlinking ? blinkEyeHeight : normalEyeHeight;
+        
+        // Left eye landmarks (all coordinates are relative to face size)
+        const leftEyeCenter = { x: 0.35, y: 0.4 };
+        landmarks[33] = { x: leftEyeCenter.x - eyeWidth/2, y: leftEyeCenter.y, z: 0 };        // Outer corner
+        landmarks[133] = { x: leftEyeCenter.x, y: leftEyeCenter.y - eyeHeight, z: 0 };        // Top
+        landmarks[159] = { x: leftEyeCenter.x, y: leftEyeCenter.y - eyeHeight, z: 0 };        // Top
+        landmarks[145] = { x: leftEyeCenter.x, y: leftEyeCenter.y + eyeHeight, z: 0 };        // Bottom
+        landmarks[144] = { x: leftEyeCenter.x, y: leftEyeCenter.y + eyeHeight, z: 0 };        // Bottom
+        landmarks[163] = { x: leftEyeCenter.x + eyeWidth/2, y: leftEyeCenter.y, z: 0 };       // Inner corner
 
-        // Right eye
-        landmarks[362] = { x: 0.6, y: 0.4, z: 0 };
-        landmarks[263] = { x: 0.65, y: 0.4, z: 0 };
-        landmarks[386] = { x: 0.6, y: 0.4, z: 0 };
-        landmarks[374] = { x: 0.65, y: 0.4, z: 0 };
-        landmarks[373] = { x: 0.7, y: 0.4, z: 0 };
-        landmarks[390] = { x: 0.75, y: 0.4, z: 0 };
-        landmarks[249] = { x: 0.6, y: 0.45, z: 0 };
+        // Right eye landmarks (mirrored)
+        const rightEyeCenter = { x: 0.65, y: 0.4 };
+        landmarks[362] = { x: rightEyeCenter.x - eyeWidth/2, y: rightEyeCenter.y, z: 0 };     // Inner corner
+        landmarks[263] = { x: rightEyeCenter.x, y: rightEyeCenter.y - eyeHeight, z: 0 };      // Top
+        landmarks[386] = { x: rightEyeCenter.x, y: rightEyeCenter.y - eyeHeight, z: 0 };      // Top
+        landmarks[374] = { x: rightEyeCenter.x, y: rightEyeCenter.y + eyeHeight, z: 0 };      // Bottom
+        landmarks[373] = { x: rightEyeCenter.x, y: rightEyeCenter.y + eyeHeight, z: 0 };      // Bottom
+        landmarks[390] = { x: rightEyeCenter.x + eyeWidth/2, y: rightEyeCenter.y, z: 0 };     // Outer corner
 
-        // Simulate blinking every 60 frames
-        if (this.frameCount % 60 < 3) {
-            // Eyes closed
-            [33, 133, 159, 145, 144, 163, 7, 362, 263, 386, 374, 373, 390, 249].forEach(index => {
-                landmarks[index].y += 0.1;  // Move eye points closer together
-            });
+        if (isBlinking) {
+            console.log('Simulating blink at frame:', this.frameCount);
         }
 
         this.onResultsCallback({
